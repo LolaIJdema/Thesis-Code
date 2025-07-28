@@ -354,7 +354,28 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   out.clustMD_S
 }
 
+#apply on data
+data <- read.csv("C:/Users/lolai/Downloads/data_on.csv")
 
+data_clean <- na.omit(data)
+data_clean$bd=data_clean$bd-1
+data_clean=data_clean[,-1]
+data_clean$age=log(data_clean$age)
+
+#set values
+X=data_clean[1:4]
+G=3
+CnsIndx=1
+OrdIndx=4
+Nnorms=5000
+MaxIter=500
+model="EVI"
+store.params = FALSE
+scale = TRUE
+startCL = "kmeans"
+autoStop= TRUE
+ma.band=30
+stop.tol=0.0001
 
 clust_S=clustMD_S(X=data_clean[1:4], G = 3, CnsIndx = 1, OrdIndx = 4, Nnorms = 50000, 
                    MaxIter = 2000, model ="VII", store.params = FALSE, scale = TRUE, 
