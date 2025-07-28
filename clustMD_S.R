@@ -1,5 +1,5 @@
 
-clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE, 
+clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, store.params = FALSE, 
           scale = FALSE, startCL = "hc_mclust", autoStop = FALSE, ma.band = 50, 
           stop.tol = NA) 
 {
@@ -143,13 +143,13 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   #####################################################################
   #Take sample of the data here
   #This sample replaces the data Y
-  samp=sample(nrow(X), 0.1*nrow(X))
+  samp=sample(nrow(X), SampSize*nrow(X))
   X_samp=X[samp, ]
   Y_samp=as.matrix(X_samp)
   
   Zinit_samp=Zinit[samp,]
   
-  N_samp=as.integer(N*0.1)
+  N_samp=as.integer(N*SampSize)
   #####################################################################
   
   if (startCL == "kmeans") {
@@ -362,21 +362,6 @@ data_clean$bd=data_clean$bd-1
 data_clean=data_clean[,-1]
 data_clean$age=log(data_clean$age)
 
-#set values
-X=data_clean[1:4]
-G=3
-CnsIndx=1
-OrdIndx=4
-Nnorms=5000
-MaxIter=500
-model="EVI"
-store.params = FALSE
-scale = TRUE
-startCL = "kmeans"
-autoStop= TRUE
-ma.band=30
-stop.tol=0.0001
-
 clust_S=clustMD_S(X=data_clean[1:4], G = 3, CnsIndx = 1, OrdIndx = 4, Nnorms = 50000, 
-                   MaxIter = 2000, model ="VII", store.params = FALSE, scale = TRUE, 
+                   MaxIter = 2000, model ="VVI",SampSize=0.1, store.params = FALSE, scale = TRUE, 
                    startCL = "kmeans", autoStop= TRUE, ma.band=30, stop.tol=0.0001)
