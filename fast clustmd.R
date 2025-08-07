@@ -340,13 +340,11 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
     mu=cbind(mu,colMeans(matrix(Zinit[ind == G], sum(ind ==G), D)))
     Sigma=abind(Sigma,diag(D))
     a=rbind(a,matrix(1,1,D))
-    pi.vec=vector()
+    pi.vec=vector() #recalculate the probabilities of observations being in any cluster
     for (g in 1:G){
       pi.vec[g]=sum(ind==g)/length(ind)
     }
-  ##################################################################
-  #run one iteration over dataset here
-  
+  #EM with new cluster added          
   temp.E <- E.step(N, G, D, CnsIndx, OrdIndx, zlimits, 
                    mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx, 
                    pi.vec, model, perc.cut)
@@ -356,6 +354,22 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
   probs.nom <- temp.E[[4]]
   Ez <- temp.E[[5]]
   ind <- mclust::map(tau)
+  
+  #If any cluster does not have any observations after an iteration it has to be removed
+  for(g in G:1){
+    if(sum(ind==g)==0){ 
+      mu=mu[,-g]
+      Sigma=Sigma[,,-g]
+      a=a[-g,]
+      pi.vec=pi.vec[-g]
+      tau=tau[,-g]
+      tausum=tausum[-g]
+      sumTauEz = sumTauEz[,-g]
+      sumTauS =sumTauS[,,-g]
+    }
+  }
+  G=length(pi.vec) #update the number of clsuters
+  
   temp.M <- M.step(tau, N, sumTauEz, J, OrdIndx, D, G, 
                    Y, CnsIndx, sumTauS, model, a, nom.ind.Z)
   pi.vec <- temp.M[[1]]
@@ -373,20 +387,9 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
   BIChat[i+1] <- 2 * obslike[i+1] - npars_clustMD(model, D, G, J, CnsIndx, 
                                         OrdIndx, K) * log(N)
   diffBIC[i+1]=BIChat[i+1]-BIChat[i]
-  #If the new cluster does not have any observations after an iteration it has to be removed
-  for(g in 1:G){
-    if(sum(ind==g)==0){
-      mu=mu[,-g]
-      Sigma=Sigma[,,-g]
-      a=a[-g,]
-      pi.vec=pi.vec[-g]
-      G=G-1
-      }
-    }
   i=i+1
   }
-  print(c(BIChat[1],BIChat[2]))
-  
+  print(BIChat) #check the progression of BIC
   
   ##################################################################
   if (model == "BD") {
@@ -434,4 +437,5 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
 
 print(mu)
 print(Sigma)
+
 
