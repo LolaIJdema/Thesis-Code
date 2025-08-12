@@ -1,5 +1,5 @@
 
-clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, store.params = FALSE, 
+clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE, 
           scale = FALSE, startCL = "hc_mclust", autoStop = FALSE, ma.band = 50, 
           stop.tol = NA) 
 {
@@ -101,7 +101,7 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
   Ez <- array(NA, c(N, D, G))
   for (g in 1:G) Ez[, 1:J, g] <- Y
   if (OrdIndx > CnsIndx) {
-    perc.cut <- clustMD::perc.cutoffs(CnsIndx, OrdIndx, Y, N)
+    perc.cut <- perc.cutoffs(CnsIndx, OrdIndx, Y, N)
     zlimits <- array(NA, c(N, J, 2))
     zlimits[, 1:CnsIndx, 1] <- -Inf
     zlimits[, 1:CnsIndx, 2] <- Inf
@@ -143,13 +143,13 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
   #####################################################################
   #Take sample of the data here
   #This sample replaces the data Y
-  samp=sample(nrow(X), SampSize*nrow(X))
+  samp=sample(nrow(X), 0.2*nrow(X))
   X_samp=X[samp, ]
-  Y_samp=as.matrix(X_samp)
+  Y_samp=Y[samp, ]
   
   Zinit_samp=Zinit[samp,]
   
-  N_samp=as.integer(N*SampSize)
+  N_samp=as.integer(N*0.2)
   #####################################################################
   
   if (startCL == "kmeans") {
@@ -218,7 +218,7 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
         K[(OrdIndx + 1):J]) - 1), 
         Sigma = diag(max(K[(OrdIndx + 1):J]) - 1))
     
-    temp.E <- clustMD::E.step(N_samp, G, D, CnsIndx, OrdIndx, zlimits, 
+    temp.E <- E.step(N_samp, G, D, CnsIndx, OrdIndx, zlimits, 
                      mu, Sigma, Y_samp, J, K, norms, nom.ind.Z, patt.indx, 
                      pi.vec, model, perc.cut)
     tau <- temp.E[[1]]
@@ -227,14 +227,14 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
     probs.nom <- temp.E[[4]]
     Ez <- temp.E[[5]]
     ind <- mclust::map(tau)
-    temp.M <- clustMD::M.step(tau, N_samp, sumTauEz, J, OrdIndx, D, G, 
+    temp.M <- M.step(tau, N_samp, sumTauEz, J, OrdIndx, D, G, 
                      Y_samp, CnsIndx, sumTauS, model, a, nom.ind.Z)
     pi.vec <- temp.M[[1]]
     mu <- temp.M[[2]]
     lambda <- temp.M[[3]]
     a <- temp.M[[4]]
     Sigma <- temp.M[[5]]
-    likeStore[iter] <- clustMD::ObsLogLikelihood(N_samp, CnsIndx, G, Y_samp, 
+    likeStore[iter] <- ObsLogLikelihood(N_samp, CnsIndx, G, Y_samp, 
                                         mu, Sigma, pi.vec, patt.indx, zlimits, J, OrdIndx, 
                                         probs.nom, model, perc.cut, K)
     if (store.params == TRUE) {
@@ -292,7 +292,7 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
   ##################################################################
   #run one iteration over dataset here
   
-  temp.E <- clustMD::E.step(N, G, D, CnsIndx, OrdIndx, zlimits, 
+  temp.E <- E.step(N, G, D, CnsIndx, OrdIndx, zlimits, 
                    mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx, 
                    pi.vec, model, perc.cut)
   tau <- temp.E[[1]]
@@ -301,25 +301,25 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
   probs.nom <- temp.E[[4]]
   Ez <- temp.E[[5]]
   ind <- mclust::map(tau)
-  temp.M <- clustMD::M.step(tau, N, sumTauEz, J, OrdIndx, D, G, 
+  temp.M <- M.step(tau, N, sumTauEz, J, OrdIndx, D, G, 
                    Y, CnsIndx, sumTauS, model, a, nom.ind.Z)
   pi.vec <- temp.M[[1]]
   mu <- temp.M[[2]]
   lambda <- temp.M[[3]]
   a <- temp.M[[4]]
   Sigma <- temp.M[[5]]
-  like <- clustMD::ObsLogLikelihood(N, CnsIndx, G, Y, 
+  like <- ObsLogLikelihood(N, CnsIndx, G, Y, 
                            mu, Sigma, pi.vec, patt.indx, zlimits, J, OrdIndx, 
                            probs.nom, model, perc.cut, K)
   if (model == "BD") {
-    probs.nom <- clustMD::z.moments(D, G, N, CnsIndx, OrdIndx, zlimits, 
+    probs.nom <- z.moments(D, G, N, CnsIndx, OrdIndx, zlimits, 
                            mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx)[[2]]
   }else {
-    probs.nom <- clustMD::z.moments_diag(D, G, N, CnsIndx, OrdIndx, 
+    probs.nom <- z.moments_diag(D, G, N, CnsIndx, OrdIndx, 
                                 zlimits, mu, Sigma, Y, J, K, norms, nom.ind.Z)[[2]]
   }
   
-  obslike <- clustMD::ObsLogLikelihood(N, CnsIndx, G, Y, mu, Sigma, 
+  obslike <- ObsLogLikelihood(N, CnsIndx, G, Y, mu, Sigma, 
                               pi.vec, patt.indx, zlimits, J, OrdIndx, probs.nom, model, 
                               perc.cut, K)
   BIChat <- 2 * obslike - npars_clustMD(model, D, G, J, CnsIndx, 
@@ -353,15 +353,3 @@ clustMD_S=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model,SampSize, sto
   class(out.clustMD_S) <- "clustMD_S"
   out.clustMD_S
 }
-
-#apply on data
-data <- read.csv("C:/Users/lolai/Downloads/data_on.csv")
-
-data_clean <- na.omit(data)
-data_clean$bd=data_clean$bd-1
-data_clean=data_clean[,-1]
-data_clean$age=log(data_clean$age)
-
-clust_S=clustMD_S(X=data_clean[1:4], G = 3, CnsIndx = 1, OrdIndx = 4, Nnorms = 50000, 
-                   MaxIter = 2000, model ="VVI",SampSize=0.1, store.params = FALSE, scale = TRUE, 
-                   startCL = "kmeans", autoStop= TRUE, ma.band=30, stop.tol=0.0001)
