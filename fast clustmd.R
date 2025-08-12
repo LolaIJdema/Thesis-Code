@@ -1,9 +1,8 @@
 
-function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE, 
+clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE, 
           scale = FALSE, startCL = "hc_mclust", autoStop = FALSE, ma.band = 50, 
           stop.tol = NA) 
 {
-  G=2
   Y <- as.matrix(X) #data
   N <- nrow(Y) #observations
   J <- ncol(Y) #variables
@@ -142,13 +141,13 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
   #####################################################################
   #Take sample of the data here
   #This sample replaces the data Y
-  samp=sample(nrow(X), 0.1*nrow(X))
+  samp=sample(nrow(X), 0.2*nrow(X))
   X_samp=X[samp, ]
-  Y_samp=as.matrix(X_samp)
+  Y_samp=Y[samp, ]
   
   Zinit_samp=Zinit[samp,]
   
-  N_samp=as.integer(N*0.1)
+  N_samp=as.integer(N*0.2)
   #####################################################################
   
   if (startCL == "kmeans") {
@@ -326,25 +325,40 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
   
   i=1
   
-  while(!is.na(diffBIC[i]) && diffBIC[i]>0){       
+  while(!is.na(diffBIC[i]) && diffBIC[i]>0){   
+    #store the old (current iteration parameters)
+    pi.vec.old=pi.vec 
+    mu.old=mu
+    lambda.old=lambda
+    a.old=a
+    Sigma.old=Sigma
+    tau.old=tau
+    sumTauEz.old=sumTauEz
+    sumTauS.old=sumTauS
+    probs.nom.old=probs.nom
+    Ez.old=Ez
+    ind.old=ind
+    
     #find lowest probability points
-    pro=apply(tau, 1, max, na.rm=TRUE) #get probability of belonging to the cluster
-    line=sort(apply(tau, 1, max, na.rm=TRUE))[100]#first percentile
-    Q=which(pro<line) #1% observations with lowest densities
+   pro=apply(tau, 1, max, na.rm=TRUE) #get probability of belonging to the cluster
+   line=sort(apply(tau, 1, max, na.rm=TRUE))[as.integer(N*0.01)]#first percentile
+   Q=which(pro<line) #1% observations with lowest densities
     
     #add these to a cluster
-    G=G+1 #update the number of clusters
-    ind[Q]=G
+   G=G+1 #update the number of clusters
+   ind[Q]=G
     
-    #find mean and standard deviation of this cluster
-    mu=cbind(mu,colMeans(matrix(Zinit[ind == G], sum(ind ==G), D)))
-    Sigma=abind(Sigma,diag(D))
-    a=rbind(a,matrix(1,1,D))
-    pi.vec=vector() #recalculate the probabilities of observations being in any cluster
-    for (g in 1:G){
-      pi.vec[g]=sum(ind==g)/length(ind)
+  #set the mean and standard deviation of this cluster
+   mu=cbind(mu,colMeans(matrix(Zinit[ind == G], sum(ind ==G), D)))
+   Sigma=abind(Sigma,diag(D)) #
+   a=rbind(a,matrix(1,1,D))
+   pi.vec=vector()
+   for (g in 1:G){
+    pi.vec[g]=sum(ind==g)/length(ind)
     }
-  #EM with new cluster added          
+  ##################################################################
+  #run one iteration over dataset here
+  
   temp.E <- E.step(N, G, D, CnsIndx, OrdIndx, zlimits, 
                    mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx, 
                    pi.vec, model, perc.cut)
@@ -368,7 +382,7 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
       sumTauS =sumTauS[,,-g]
     }
   }
-  G=length(pi.vec) #update the number of clsuters
+  G=length(pi.vec)
   
   temp.M <- M.step(tau, N, sumTauEz, J, OrdIndx, D, G, 
                    Y, CnsIndx, sumTauS, model, a, nom.ind.Z)
@@ -387,25 +401,32 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
   BIChat[i+1] <- 2 * obslike[i+1] - npars_clustMD(model, D, G, J, CnsIndx, 
                                         OrdIndx, K) * log(N)
   diffBIC[i+1]=BIChat[i+1]-BIChat[i]
-  i=i+1
-  }
-  print(BIChat) #check the progression of BIC
   
+  i=i+1
+  } 
+  # update the parameters to those of the model with the highest BIC
+  pi.vec= pi.vec.old
+  mu=mu.old
+  lambda=lambda.old
+  a=a.old
+  Sigma=Sigma.old
+  tau=tau.old
+  sumTauEz=sumTauEz.old
+  sumTauS=sumTauS.old
+  probs.nom=probs.nom.old
+  Ez=Ez.old
+  ind=ind.old
+  
+  BIChat=BIChat[i-1]
   ##################################################################
   if (model == "BD") {
-    probs.nom <- clustMD::z.moments(D, G, N, CnsIndx, OrdIndx, zlimits, 
+    probs.nom <- z.moments(D, G, N, CnsIndx, OrdIndx, zlimits, 
                            mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx)[[2]]
   }else {
-    probs.nom <- clustMD::z.moments_diag(D, G, N, CnsIndx, OrdIndx, 
+    probs.nom <- z.moments_diag(D, G, N, CnsIndx, OrdIndx, 
                                 zlimits, mu, Sigma, Y, J, K, norms, nom.ind.Z)[[2]]
   }
   
-  obslike <- ObsLogLikelihood(N, CnsIndx, G, Y, mu, Sigma, 
-                              pi.vec, patt.indx, zlimits, J, OrdIndx, probs.nom, model, 
-                              perc.cut, K)
-  BIChat <- 2 * obslike - npars_clustMD(model, D, G, J, CnsIndx, 
-                                        OrdIndx, K) * log(N)
-
   close(pb)
   CompleteLike_i <- rep(NA, N)
   for (i in 1:N) {
@@ -426,16 +447,10 @@ function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE,
     params.store.list <- NULL
   }
   
-  out.clustMD <- list(model = model, G = G, Y = Y, cl = ind, 
+  out.clustMD_I <- list(model = model, G = G, Y = Y, cl = ind, 
                       tau = tau, means = mu, A = a, Lambda = lambda, Sigma = Sigma, 
                       BIChat = BIChat, ICLhat = ICLhat, paramlist = params.store.list, 
                       VarNames = VarNames, VarNames_sht = VarNames_sht, likelihood.store = likeStore)
-  class(out.clustMD) <- "clustMD"
-  out.clustMD
+  class(out.clustMD_I) <- "clustMD_I"
+  out.clustMD_I
 }
-
-
-print(mu)
-print(Sigma)
-
-
