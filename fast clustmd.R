@@ -419,13 +419,6 @@ clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   
   BIChat=BIChat[i-1]
   ##################################################################
-  if (model == "BD") {
-    probs.nom <- z.moments(D, G, N, CnsIndx, OrdIndx, zlimits, 
-                           mu, Sigma, Y, J, K, norms, nom.ind.Z, patt.indx)[[2]]
-  }else {
-    probs.nom <- z.moments_diag(D, G, N, CnsIndx, OrdIndx, 
-                                zlimits, mu, Sigma, Y, J, K, norms, nom.ind.Z)[[2]]
-  }
   
   close(pb)
   CompleteLike_i <- rep(NA, N)
@@ -454,3 +447,4 @@ clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   class(out.clustMD_I) <- "clustMD_I"
   out.clustMD_I
 }
+
