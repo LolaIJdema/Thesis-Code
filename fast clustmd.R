@@ -1,5 +1,5 @@
 
-clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params = FALSE, 
+clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, SampSize, GroupProp, store.params = FALSE, 
           scale = FALSE, startCL = "hc_mclust", autoStop = FALSE, ma.band = 50, 
           stop.tol = NA) 
 {
@@ -141,13 +141,13 @@ clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   #####################################################################
   #Take sample of the data here
   #This sample replaces the data Y
-  samp=sample(nrow(X), 0.2*nrow(X))
+  samp=sample(nrow(X), SampSize*nrow(X))
   X_samp=X[samp, ]
   Y_samp=Y[samp, ]
   
   Zinit_samp=Zinit[samp,]
   
-  N_samp=as.integer(N*0.2)
+  N_samp=as.integer(N*SampSize)
   #####################################################################
   
   if (startCL == "kmeans") {
@@ -341,8 +341,8 @@ clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
     
     #find lowest probability points
    pro=apply(tau, 1, max, na.rm=TRUE) #get probability of belonging to the cluster
-   line=sort(apply(tau, 1, max, na.rm=TRUE))[as.integer(N*0.01)]#first percentile
-   Q=which(pro<line) #1% observations with lowest densities
+   line=sort(apply(tau, 1, max, na.rm=TRUE))[as.integer(N*GroupProp)]
+   Q=which(pro<line) 
     
     #add these to a cluster
    G=G+1 #update the number of clusters
@@ -447,4 +447,5 @@ clustMD_I=function (X, G, CnsIndx, OrdIndx, Nnorms, MaxIter, model, store.params
   class(out.clustMD_I) <- "clustMD_I"
   out.clustMD_I
 }
+
 
